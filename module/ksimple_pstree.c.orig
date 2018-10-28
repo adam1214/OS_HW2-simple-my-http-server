@@ -190,8 +190,8 @@ static void recv_cb(struct sk_buff *skb)
                         temp=list_entry(lptr,struct task_struct,sibling);
                         printk("temp(task_struct) be made successfully\n");
                         if(target->pid!=temp->pid) { //avoid to print target process
-                            sprintf(arr_sibling,"%s(%d)\n",temp->comm,temp->pid);
-                            strcat(send_data,arr_sibling);
+                              sprintf(arr_sibling,"%s(%d)\n",temp->comm,temp->pid);
+                              strcat(send_data,arr_sibling);
                         }
                     }
                     send_data[strlen(send_data)]='\0';
