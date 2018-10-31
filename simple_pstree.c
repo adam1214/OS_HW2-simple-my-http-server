@@ -22,21 +22,47 @@ struct _my_msg {
 
 int main(int argc, char **argv)
 {
-    char no[1][4];
-    no[0][0]='-';
-    no[0][1]='c';
-    no[0][2]='1';
-    char *data;
-    if(argc==2) {
-        data=argv[1];
-        if(argv[1][0]=='-'&&(argv[1][1]=='s'||argv[1][1]=='p')&&argv[1][2]=='\0') {
+    int i;
+    char data[1000]= {'\0'};
+    if(argc==2) { //Have command line
+        if(argv[1][0]=='-'&&(argv[1][1]=='s'||argv[1][1]=='p')&&argv[1][2]=='\0') { //the case that -s or -p,no get pid number
             char pid[100]="";
             int pid_i=getpid();
             sprintf(pid,"%d",pid_i);
+            data[0]=argv[1][1]; //s or p
+            data[1]=' '; //need one space
             strcat(data,pid);
         }
-    } else {
-        data=no[0];
+
+        else if(argv[1][0]=='-'&&argv[1][1]=='c'&&argv[1][2]=='\0') { //the case that -c,no get pid number
+            data[0]=argv[1][1];
+            data[1]=' ';
+            data[2]='1';
+        }
+
+        else if(argv[1][0]!='-') { //only exist pid number
+            data[0]='c';
+            data[1]=' ';
+
+            for(i=0; argv[1][i]!='\0'; i++) {
+                data[i+2]=argv[1][i];
+            }
+        }
+
+        else { //normal case ex:-c1,-s4,-p456...
+            data[0]=argv[1][1];
+            data[1]=' ';
+
+            for(i=2; argv[1][i]!='\0'; i++) {
+                data[i]=argv[1][i];
+            }
+        }
+    }
+
+    else { //if no command,it's -c1
+        data[0]='c';
+        data[1]=' ';
+        data[2]='1';
     }
     struct sockaddr_nl  local, dest_addr;
     int skfd;

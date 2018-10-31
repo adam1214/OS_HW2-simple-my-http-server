@@ -136,30 +136,9 @@ static void recv_cb(struct sk_buff *skb)
             recv_ptr=(char*)data; //convert to char type
             printk("convert to char type successfully");
 
-            if(recv_ptr[0]!='-') { //only exist pid number
-                type='c';
+                type=recv_ptr[0]; //c or s or p
                 printk("type = %c\n",type);
 
-                for(i=0; (i<strlen(recv_ptr)); i++) {
-                    if(i==(strlen(recv_ptr)-2)) {
-                        pid[i]='\0';
-                    } else {
-                        pid[i]=recv_ptr[i];
-                    }
-                }
-            } else {
-                type=recv_ptr[1]; //c or s or p
-                printk("type = %c\n",type);
-
-                if(strlen(recv_ptr)==2&&type=='c') { //-c
-                    pid[0]='1';
-                } else if(strlen(recv_ptr)==2&&type=='s') { //if -s,pid is simple_pstree
-
-                } else if(strlen(recv_ptr)==2&&type=='p') { //if -p,pid is simple_pstree
-
-                }
-
-                else {
                     for(i=0; i<(strlen(recv_ptr)-1); i++) { //make pid
                         if(i==(strlen(recv_ptr)-2)) {
                             pid[i]='\0';
@@ -167,9 +146,7 @@ static void recv_cb(struct sk_buff *skb)
                             pid[i]=recv_ptr[i+2];
                         }
                     }
-                }
-            }
-
+            
             printk("pid = %s\n",pid);
             if(pid_i<0) {
                 sscanf(pid,"%d",&pid_i);
@@ -190,8 +167,8 @@ static void recv_cb(struct sk_buff *skb)
                         temp=list_entry(lptr,struct task_struct,sibling);
                         printk("temp(task_struct) be made successfully\n");
                         if(target->pid!=temp->pid) { //avoid to print target process
-                              sprintf(arr_sibling,"%s(%d)\n",temp->comm,temp->pid);
-                              strcat(send_data,arr_sibling);
+                            sprintf(arr_sibling,"%s(%d)\n",temp->comm,temp->pid);
+                            strcat(send_data,arr_sibling);
                         }
                     }
                     send_data[strlen(send_data)]='\0';
