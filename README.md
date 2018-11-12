@@ -1,1 +1,1 @@
-# HW1-simple-pstree
+# hw2-simple-my-http-server

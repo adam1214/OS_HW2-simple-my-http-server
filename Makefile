@@ -1,20 +1,23 @@
-CC := gcc
-override CFLAGS += -O3 -Wall
+CC = gcc -std=c99
+CCFLAGS = -Wall -O3
 
-SOURCE := simple_pstree.c
-BINARY := simple-pstree
+SERVER= server
+CLIENT= client
 
 GIT_HOOKS := .git/hooks/applied
 
-all: $(GIT_HOOKS) $(BINARY)
+all: $(GIT_HOOKS)
+	$(CC) -o $(SERVER) $(CCFLAGS)  $(SERVER).c -lpthread
+	$(CC) -o $(CLIENT) $(CCFLAGS)  $(CLIENT).c -lpthread
 
 $(GIT_HOOKS):
 	@.githooks/install-git-hooks
 	@echo
 
-$(BINARY): $(SOURCE) $(patsubst %.c, %.h, $(SOURCE))
-	$(CC) $(CFLAGS) $< -o $@
+debug: $(GIT_HOOKS)
+	$(CC) -o $(SERVER) $(CCFLAGS) -g $(SERVER).c -lpthread
+	$(CC) -o $(CLIENT) $(CCFLAGS) -g $(CLIENT).c -lpthread
 
-.PHONY: clean
+
 clean:
-	rm -f *.o $(BINARY)
+	rm -rf $(SERVER) $(CLIENT)
