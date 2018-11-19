@@ -122,12 +122,13 @@ void find(DIR *d,char* message,struct node* ptr)
                 if(find_dir_con==1) { //print ls to message
                     strcat(message,"HTTP/1.x 200 OK\r\n");
                     strcat(message,"Content-type: directory\r\n");
-                    strcat(message,"Server: httpserver/1.x \r\n\r\n");
+                    strcat(message,"Server: httpserver/1.x\r\n\r\n");
                     strcat(message,dir->d_name);
                     strcat(message," ");
                     find_dir_con++;
                     find_con++;
-                } else if(find_dir_con==2) {
+                }
+		else if(find_dir_con==2) {
                     strcat(message,dir->d_name);
                     strcat(message," ");
                 } else {
@@ -153,7 +154,6 @@ void find(DIR *d,char* message,struct node* ptr)
                         //printf("item:%s\n",item);
                         if(strcmp(dir->d_name,ptr->target)==0) {
                             Push(item,strlen(item),ptr->target,strlen(ptr->target),ptr->forClientSockfd);
-                            find_dir_con++;
                         }
                     }
                     //if(stat(dir->d_name,&sb)==0&&S_ISREG(sb.st_mode))
@@ -196,7 +196,7 @@ void find(DIR *d,char* message,struct node* ptr)
                                 strcat(message,"Content-type:\r\n");
                                 sup_type=0;
                             }
-                            strcat(message,"Server: httpserver/1.x \r\n\r\n");
+                            strcat(message,"Server: httpserver/1.x\r\n\r\n");
                             if(sup_type==1) {
                                 //print file content
                                 for(i=0; i<50; i++) {
@@ -247,7 +247,6 @@ void *runner(void *param)
             printf("Thread %d\n",thread_num);
             struct node* ptr=Pop();
             Pop_s=ptr->data;
-            //printf("Pop_s=%s\n",Pop_s);
             for(i=0; i<50; i++) {
                 Pop_ss[i]=Pop_s[i]; // ./testdir/secfolder
             }
@@ -265,12 +264,8 @@ void *runner(void *param)
             find(d,message,ptr);
             printf("find_con=%d\n",find_con);
             if(find_con!=0) {
-                strcat(message,"\n");
+		strcat(message,"\n");
                 send(ptr->forClientSockfd,message,sizeof(message),0);
-            } else if(find_con==0&&find_dir_con==0) {
-                strcat(message,"HTTP/1.x 404 NOT_FOUND\r\nContent-type:\r\nServer: httpserver/1.x\r\n\r\n");
-                send(ptr->forClientSockfd,message,sizeof(message),0);
-                printf("%s",message);
             }
             find_con=0;
             sup_type=1;
@@ -283,17 +278,9 @@ void *runner(void *param)
 int main(int argc, char *argv[])
 
 {
-    char a[4]= {'\0'};
-    char b[129]= {'\0'};
-    char c[50]= {'\0'};
-    char d[50]= {'\0'};
-    char end[50]= {'\0'};
-    char av_2[1025]= {'\0'};
     char *e=NULL;
     char dot[1026]=".";
-    char bad_request[200]="HTTP/1.x 400 BAD_REQUEST\r\nContent-type:\r\nServer: httpserver/1.x\r\n\r\n";
-    char err_method[200]="HTTP/1.x 405 METHOD_NOT_ALLOWED\r\nContent-type:\r\nServer: httpserver/1.x\r\n\r\n";
-
+    char bad_request[200]="HTTP 1.x 400 BAD_REQUEST\r\nContent-type:\r\nServer: httpserver/1.x\r\n\r\n";
     thread_cnt=atoi(argv[6]);
 
     //set up socket
@@ -330,82 +317,69 @@ int main(int argc, char *argv[])
     }
 
     while(1) {
-        str_clear(a,4);
-        str_clear(b,129);
-        str_clear(c,50);
-        str_clear(d,50);
-        str_clear(end,50);
         str_clear(item,50);
         str_clear(sub_item,50);
         str_clear(file_content,10000);
         str_clear(Pop_ss,50);
-        str_clear(av_2,1025);
         find_dir_con=0;
         sup_type=1;
         target=NULL;
         Pop_s=NULL;
-        dot[0]='.';
-        dot[1]='\0';
-        e=NULL;
-        //printf("server prepare to receive\n");
+	dot[0]='.';
+	dot[1]='\0';
+	e=NULL;
+
         forClientSockfd = accept(sockfd,(struct sockaddr*) &clientInfo, &addrlen);
         recv(forClientSockfd,inputBuffer,sizeof(inputBuffer),0);
-        printf("server has received\n");
         char save_inputBuffer[256]= {'\0'};
         strcat(save_inputBuffer,inputBuffer);
 
         //Handle inputBuffer string
-        sscanf(inputBuffer,"%s %s %s %s %s",a,b,c,d,end);
-        //printf("a=%s\n",a);
-        if(strcmp(b,"/")==0) {
-            printf("inputBuffer:\n%s",inputBuffer);
-            strcat(av_2,argv[2]);
-            strcat(dot,av_2); //dot=./testdir
-            e=strrchr(av_2,'/'); //e=/testdir
-            sscanf(e,"/%s",e); //e=testdir
-            printf("e=%s\n",e);
-            printf("dot=%s\n",dot);
-            pthread_mutex_lock(&lock);
-            Push(dot,strlen(dot),e,strlen(e),forClientSockfd);
-            pthread_mutex_unlock(&lock);
-        } else {
-            printf("inputBuffer:\n%s",inputBuffer);
-            char *substr=NULL;
-            substr=strchr(inputBuffer,'/'); //remove Get
-            char* delim=" ";
-            target=strtok(substr,delim);
-            if(inputBuffer[4]!='/') {
-                printf("Request does not start with a slash\n");
-                send(forClientSockfd,bad_request,sizeof(bad_request),0);
-                close(forClientSockfd);
-                continue;
-            }
-            if(strcmp(a,"GET")!=0) {
-                send(forClientSockfd,err_method,sizeof(err_method),0);
-                close(forClientSockfd);
-                continue;
-            }
-            if(strlen(substr)>128) {
-                printf("Size of QUERY_FILE_OR_DIR is greater than 128 bytes\n");
-                send(forClientSockfd,bad_request,sizeof(bad_request),0);
-                close(forClientSockfd);
-                continue;
-            }
-            //sscanf(target,"/%s",target);
-            if(target[strlen(target)-1]=='/') {
-                target[strlen(target)-1]='\0'; //remove the end slash
-            }
-            printf("substr=%s\n",substr);
-            printf("target=%s\n",target); //target=example.html
-            e=strrchr(target,'/');
-            sscanf(e,"/%s",e);
-            printf("e=%s\n",e);
-            strcat(dot,argv[2]); //dot=./testdir
-
-            pthread_mutex_lock(&lock);
-            Push(dot,strlen(dot),e,strlen(e),forClientSockfd);
-            pthread_mutex_unlock(&lock);
+	if(strcmp(inputBuffer,"/")==0)
+	{
+		strcat(dot,argv[2]); //dot=./testdir
+		e=strrchr(argv[2],'/'); //e=/testdir
+		sscanf(e,"/%s",e); //e=testdir
+		printf("e=%s\n",e);
+		printf("dor=%s\n",dot);
+        	pthread_mutex_lock(&lock);
+        	Push(dot,strlen(dot),e,strlen(e),forClientSockfd);
+        	pthread_mutex_unlock(&lock);
+	}
+	else
+	{
+        char *substr=NULL;
+        substr=strchr(inputBuffer,'/'); //remove Get
+        char* delim=" ";
+        target=strtok(substr,delim);
+	if(inputBuffer[4]!='/')
+	{
+		printf("Request does not start with a slash\n");
+		send(forClientSockfd,bad_request,sizeof(bad_request),0);
+		close(forClientSockfd);
+		continue;
+	}
+        if(strlen(substr)>128) {
+            printf("Size of QUERY_FILE_OR_DIR is greater than 128 bytes\n");
+            send(forClientSockfd,bad_request,sizeof(bad_request),0);
+            close(forClientSockfd);
+            continue;
         }
+        //sscanf(target,"/%s",target);
+        if(target[strlen(target)-1]=='/') {
+            target[strlen(target)-1]='\0'; //remove the end slash
+        }
+	printf("substr=%s\n",substr);
+        printf("target=%s\n",target); //target=example.html
+	e=strrchr(target,'/');
+	sscanf(e,"/%s",e);
+	printf("e=%s\n",e);
+	strcat(dot,argv[2]); //dot=./testdir
+
+        pthread_mutex_lock(&lock);
+        Push(dot,strlen(dot),e,strlen(e),forClientSockfd);
+        pthread_mutex_unlock(&lock);
+    }
 
         //printf("%s\n",save_inputBuffer);
     }
