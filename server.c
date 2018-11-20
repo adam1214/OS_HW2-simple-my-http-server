@@ -170,7 +170,7 @@ void find(DIR *d,char* message,struct node* ptr)
                                 strcat(message,"HTTP/1.x 200 OK\r\n");
                                 strcat(message,"Content-type: text/html\r\n");
                             } else if(strcmp(res,".html")==0) {
-                                printf("456\n");
+                                //printf("456\n");
                                 strcat(message,"HTTP/1.x 200 OK\r\n");
                                 strcat(message,"Content-type: text/html\r\n");
                             } else if(strcmp(res,".css")==0) {
@@ -284,7 +284,7 @@ int main(int argc, char *argv[])
 
 {
     char a[4]= {'\0'};
-    char b[129]= {'\0'};
+    char b[1000]= {'\0'};
     char c[50]= {'\0'};
     char d[50]= {'\0'};
     char end[50]= {'\0'};
@@ -293,6 +293,7 @@ int main(int argc, char *argv[])
     char dot[1026]=".";
     char bad_request[200]="HTTP/1.x 400 BAD_REQUEST\r\nContent-type:\r\nServer: httpserver/1.x\r\n\r\n";
     char err_method[200]="HTTP/1.x 405 METHOD_NOT_ALLOWED\r\nContent-type:\r\nServer: httpserver/1.x\r\n\r\n";
+    char err_type[200]="HTTP/1.x 415 UNSUPPORT_MEDIA_TYPE\r\nContent-type:\r\nServer: httpserver/1.x\r\n\r\n";
 
     thread_cnt=atoi(argv[6]);
 
@@ -329,9 +330,10 @@ int main(int argc, char *argv[])
         pthread_create(&thread_pool[i].thread,NULL,runner,&i); //create the thread
     }
 
+    int b_con=0;
     while(1) {
         str_clear(a,4);
-        str_clear(b,129);
+        str_clear(b,1000);
         str_clear(c,50);
         str_clear(d,50);
         str_clear(end,50);
@@ -347,6 +349,7 @@ int main(int argc, char *argv[])
         dot[0]='.';
         dot[1]='\0';
         e=NULL;
+        b_con=0;
         //printf("server prepare to receive\n");
         forClientSockfd = accept(sockfd,(struct sockaddr*) &clientInfo, &addrlen);
         recv(forClientSockfd,inputBuffer,sizeof(inputBuffer),0);
@@ -380,17 +383,32 @@ int main(int argc, char *argv[])
                 close(forClientSockfd);
                 continue;
             }
-            if(strcmp(a,"GET")!=0) {
-                send(forClientSockfd,err_method,sizeof(err_method),0);
-                close(forClientSockfd);
-                continue;
-            }
             if(strlen(substr)>128) {
                 printf("Size of QUERY_FILE_OR_DIR is greater than 128 bytes\n");
                 send(forClientSockfd,bad_request,sizeof(bad_request),0);
                 close(forClientSockfd);
                 continue;
             }
+            if(strcmp(a,"GET")!=0) {
+                send(forClientSockfd,err_method,sizeof(err_method),0);
+                close(forClientSockfd);
+                continue;
+            }
+            for(i=0; i<1000; i++) {
+                if(b[i]=='.') {
+                    b_con++;
+                    break;
+                }
+            }
+            if(b_con!=0) {
+                char *sss=strrchr(b,'.');
+                if(strcmp(sss,".htm")!=0&&strcmp(sss,".html")!=0&&strcmp(sss,".css")!=0&&strcmp(sss,".h")!=0&&strcmp(sss,".hh")!=0&&strcmp(sss,".c")!=0&&strcmp(sss,".cc")!=0&&strcmp(sss,".json")!=0) {
+                    send(forClientSockfd,err_type,sizeof(err_type),0);
+                    close(forClientSockfd);
+                    continue;
+                }
+            }
+
             //sscanf(target,"/%s",target);
             if(target[strlen(target)-1]=='/') {
                 target[strlen(target)-1]='\0'; //remove the end slash
